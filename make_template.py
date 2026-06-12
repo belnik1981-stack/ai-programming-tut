@@ -1,0 +1,68 @@
+content = '''<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Tutor</title>
+<style>
+  body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 10px; background: #1a1a1a; color: #eee; }
+  h1 { font-size: 1.3em; }
+  #chat { height: 70vh; overflow-y: auto; border: 1px solid #444; padding: 10px; border-radius: 8px; background: #222; }
+  .msg { margin: 8px 0; padding: 8px 12px; border-radius: 8px; }
+  .user { background: #2d4a6b; text-align: right; }
+  .assistant { background: #333; }
+  #inputForm { display: flex; margin-top: 10px; gap: 8px; }
+  #userInput { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #eee; }
+  button { padding: 10px 16px; border-radius: 6px; border: none; background: #2d6b4a; color: #fff; }
+</style>
+</head>
+<body>
+<h1>AI-наставник по программированию</h1>
+<div id="chat"></div>
+<form id="inputForm">
+  <input type="text" id="userInput" placeholder="Введите вопрос..." autocomplete="off">
+  <button type="submit">Отправить</button>
+</form>
+<script>
+const chat = document.getElementById("chat");
+const form = document.getElementById("inputForm");
+const input = document.getElementById("userInput");
+
+function addMessage(text, role) {
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+window.onload = async () => {
+  const res = await fetch("/history");
+  const data = await res.json();
+  data.forEach(m => addMessage(m.content, m.role));
+};
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage(text, "user");
+  input.value = "";
+  addMessage("...", "assistant");
+  const res = await fetch("/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({message: text})
+  });
+  const data = await res.json();
+  chat.lastChild.textContent = data.reply;
+});
+</script>
+</body>
+</html>
+'''
+
+with open("templates/index.html", "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("Template created")
