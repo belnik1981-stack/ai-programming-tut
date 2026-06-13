@@ -52,10 +52,16 @@ def run_python_code(code: str) -> str:
             env={"PATH": "/data/data/com.termux/files/usr/bin"},
             preexec_fn=_limit_resources
         )
-        output = result.stdout
-        if result.stderr:
-            output += "\n[STDERR]\n" + result.stderr
-        return output.strip() if output.strip() else "(нет вывода)"
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+
+        if result.returncode != 0:
+            return f"[ERROR]\n{stderr or 'no stderr'}"
+
+        if stdout:
+            return f"[OK]\n{stdout}"
+
+        return "[OK_NO_OUTPUT]"
     except subprocess.TimeoutExpired:
         return "ОШИБКА: превышено время выполнения (10 сек)"
     except Exception as e:
