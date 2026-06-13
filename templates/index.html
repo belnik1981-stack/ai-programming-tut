@@ -14,6 +14,8 @@
   #inputForm { display: flex; margin-top: 10px; gap: 8px; }
   #userInput { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #eee; }
   button { padding: 10px 16px; border-radius: 6px; border: none; background: #2d6b4a; color: #fff; }
+  pre { background: #111; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+  pre code { font-family: monospace; font-size: 0.9em; white-space: pre; }
 </style>
 </head>
 <body>
@@ -28,10 +30,30 @@ const chat = document.getElementById("chat");
 const form = document.getElementById("inputForm");
 const input = document.getElementById("userInput");
 
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function renderContent(text) {
+  // Заменяем ```code``` блоки на <pre><code>, остальное - обычный текст с переносами
+  const parts = text.split(/```(?:\w*\n?)?/);
+  let html = "";
+  parts.forEach((part, i) => {
+    if (i % 2 === 1) {
+      html += "<pre><code>" + escapeHtml(part.trim()) + "</code></pre>";
+    } else {
+      html += escapeHtml(part).replace(/\n/g, "<br>");
+    }
+  });
+  return html;
+}
+
 function addMessage(text, role) {
   const div = document.createElement("div");
   div.className = "msg " + role;
-  div.textContent = text;
+  div.innerHTML = renderContent(text);
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
