@@ -89,13 +89,13 @@ def _call_api(messages, use_tools=True):
             response = _call_provider(provider, messages, use_tools)
             if response.status_code == 200:
                 return response.json()
-            if response.status_code == 429:
-                errors.append(f"{provider['name']}: 429")
-                log_issue("rate_limit", {"provider": provider['name']})
+            if response.status_code == 429 or response.status_code >= 500:
+                errors.append(f"{provider['name']}: {response.status_code}")
+                log_issue("rate_limit_or_server_error", {"provider": provider['name'], "status": response.status_code})
                 continue
-            errors.append(f"{provider['name']}: {response.status_code} {response.text[:100]}")
-            log_issue("api_error", {"provider": provider['name'], "status": response.status_code, "body": response.text[:200]})
-            continue
+            # 4xx (кроме 429) - проблема в самом запросе, переключение провайдера не поможет
+            log_issue("request_error", {"provider": provider['name'], "status": response.status_code, "body": response.text[:200]})
+            raise RuntimeError(f"{provider['name']}: ошибка запроса {response.status_code}: {response.text[:200]}")
         except Exception as e:
             errors.append(f"{provider['name']}: exc {e}")
             continue
