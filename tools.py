@@ -1,10 +1,38 @@
 import subprocess
+import ast
+import tempfile
+import shutil
+
+BLOCKED_MODULES = {"os", "subprocess", "socket", "shutil", "pathlib", "sys", "ctypes"}
+
+def _check_code_safety(code: str) -> str:
+    """Возвращает сообщение об ошибке если код использует запрещённые модули, иначе пустую строку."""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as e:
+        return f"Синтаксическая ошибка: {e}"
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.split(".")[0] in BLOCKED_MODULES:
+                    return f"Запрещённый модуль: {alias.name}"
+        if isinstance(node, ast.ImportFrom):
+            if node.module and node.module.split(".")[0] in BLOCKED_MODULES:
+                return f"Запрещённый модуль: {node.module}"
+        if isinstance(node, ast.Name) and node.id == "__import__":
+            return "Запрещена прямая функция __import__"
+    return ""
+
 
 def run_python_code(code: str) -> str:
-    """Выполняет Python-код в изолированном окружении (без доступа к env и домашней директории)."""
-    import tempfile
+    """Выполняет Python-код в изолированном окружении (без доступа к env, файловой системе вне сэндбокса и опасным модулям)."""
+    safety_issue = _check_code_safety(code)
+    if safety_issue:
+        return f"ОТКАЗ: код не выполнен. {safety_issue}"
+
+    sandbox_dir = tempfile.mkdtemp(prefix="sandbox_")
     try:
-        sandbox_dir = tempfile.mkdtemp(prefix="sandbox_")
         result = subprocess.run(
             ["python3", "-I", "-c", code],
             capture_output=True,
@@ -21,6 +49,8 @@ def run_python_code(code: str) -> str:
         return "ОШИБКА: превышено время выполнения (10 сек)"
     except Exception as e:
         return f"ОШИБКА: {e}"
+    finally:
+        shutil.rmtree(sandbox_dir, ignore_errors=True)
 
 import os
 import requests as _requests
