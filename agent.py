@@ -38,6 +38,17 @@ TOOLS_SPEC = [
 
 AVAILABLE_TOOLS = {"run_python_code": run_python_code, "web_search": web_search}
 
+TOOL_TRIGGER_WORDS = [
+    "посчитай", "выполни", "запусти", "код", "проверь",
+    "найди", "поиск", "найди в интернете", "используй поиск",
+    "погода", "сегодня", "сейчас", "последняя версия", "новост",
+    "актуальн", "текущ", "вышла", "выйдет"
+]
+
+def _needs_tools(user_message):
+    text = user_message.lower()
+    return any(word in text for word in TOOL_TRIGGER_WORDS)
+
 
 def _parse_text_tool_call(text):
     """Парсит формат <function(name){args}</function>, если модель вернула tool call как текст."""
@@ -53,7 +64,7 @@ def _parse_text_tool_call(text):
     return None, None
 
 
-def _call_provider(provider, messages):
+def _call_provider(provider, messages, use_tools=True):
     headers = {
         "Authorization": f"Bearer {provider['api_key']}",
         "Content-Type": "application/json"
@@ -61,20 +72,21 @@ def _call_provider(provider, messages):
     payload = {
         "model": provider["model"],
         "max_tokens": MAX_TOKENS,
-        "messages": messages,
-        "tools": TOOLS_SPEC
+        "messages": messages
     }
+    if use_tools:
+        payload["tools"] = TOOLS_SPEC
     response = requests.post(provider["url"], headers=headers, json=payload, timeout=60)
     return response
 
 
-def _call_api(messages):
+def _call_api(messages, use_tools=True):
     errors = []
     for provider in PROVIDERS:
         if not provider["api_key"]:
             continue
         try:
-            response = _call_provider(provider, messages)
+            response = _call_provider(provider, messages, use_tools)
             if response.status_code == 200:
                 return response.json()
             if response.status_code == 429:
@@ -96,8 +108,10 @@ def ask(user_message, history):
     messages.extend(trimmed_history)
     messages.append({"role": "user", "content": user_message})
 
+    use_tools = _needs_tools(user_message)
+
     try:
-        data = _call_api(messages)
+        data = _call_api(messages, use_tools)
     except RuntimeError as e:
         return str(e)
 
