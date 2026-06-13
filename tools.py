@@ -35,6 +35,20 @@ def _limit_resources():
     resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
 
 
+def _classify_error(stderr: str) -> str:
+    """Определяет тип ошибки по последней строке traceback."""
+    last_line = stderr.strip().splitlines()[-1] if stderr.strip() else ""
+    if "SyntaxError" in last_line or "IndentationError" in last_line:
+        return "ERROR_SYNTAX"
+    if "NameError" in last_line:
+        return "ERROR_NAME"
+    if "TypeError" in last_line:
+        return "ERROR_TYPE"
+    if "ZeroDivisionError" in last_line or "ValueError" in last_line or "IndexError" in last_line or "KeyError" in last_line:
+        return "ERROR_RUNTIME"
+    return "ERROR_RUNTIME"
+
+
 def run_python_code(code: str) -> str:
     """Выполняет Python-код в изолированном окружении (без доступа к env, файловой системе вне сэндбокса, опасным модулям, с лимитом памяти/CPU)."""
     safety_issue = _check_code_safety(code)
@@ -56,7 +70,7 @@ def run_python_code(code: str) -> str:
         stderr = result.stderr.strip()
 
         if result.returncode != 0:
-            error_type = "ERROR_SYNTAX" if "SyntaxError" in stderr else "ERROR_RUNTIME"
+            error_type = _classify_error(stderr)
             return f"[{error_type}]\n{stderr or 'no stderr'}"
 
         if stdout:
