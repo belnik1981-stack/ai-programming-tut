@@ -12,6 +12,12 @@ MAX_HISTORY_MESSAGES = 4
 
 PROVIDERS = [
     {
+        "name": "cerebras",
+        "api_key": os.getenv("CEREBRAS_API_KEY", ""),
+        "url": "https://api.cerebras.ai/v1/chat/completions",
+        "model": "llama-3.3-70b"
+    },
+    {
         "name": "openrouter",
         "api_key": os.getenv("OPENROUTER_API_KEY", ""),
         "url": "https://openrouter.ai/api/v1/chat/completions",
