@@ -29,8 +29,14 @@ def _check_code_safety(code: str) -> str:
     return ""
 
 
+def _limit_resources():
+    """Вызывается в дочернем процессе перед exec для ограничения CPU-времени."""
+    import resource
+    resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
+
+
 def run_python_code(code: str) -> str:
-    """Выполняет Python-код в изолированном окружении (без доступа к env, файловой системе вне сэндбокса и опасным модулям)."""
+    """Выполняет Python-код в изолированном окружении (без доступа к env, файловой системе вне сэндбокса, опасным модулям, с лимитом памяти/CPU)."""
     safety_issue = _check_code_safety(code)
     if safety_issue:
         return f"ОТКАЗ: код не выполнен. {safety_issue}"
@@ -43,7 +49,8 @@ def run_python_code(code: str) -> str:
             text=True,
             timeout=10,
             cwd=sandbox_dir,
-            env={"PATH": "/data/data/com.termux/files/usr/bin"}
+            env={"PATH": "/data/data/com.termux/files/usr/bin"},
+            preexec_fn=_limit_resources
         )
         output = result.stdout
         if result.stderr:
