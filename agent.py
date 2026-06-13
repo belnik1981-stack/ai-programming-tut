@@ -2,7 +2,7 @@ import requests
 import json
 import re
 from config import PROVIDERS, MAX_TOKENS, MAX_HISTORY_MESSAGES, SYSTEM_PROMPT
-from memory import save_history
+from memory import save_history, log_issue
 from tools import run_python_code, web_search
 
 TOOLS_SPEC = [
@@ -79,8 +79,10 @@ def _call_api(messages):
                 return response.json()
             if response.status_code == 429:
                 errors.append(f"{provider['name']}: 429")
+                log_issue("rate_limit", {"provider": provider['name']})
                 continue
             errors.append(f"{provider['name']}: {response.status_code} {response.text[:100]}")
+            log_issue("api_error", {"provider": provider['name'], "status": response.status_code, "body": response.text[:200]})
             continue
         except Exception as e:
             errors.append(f"{provider['name']}: exc {e}")
@@ -101,7 +103,6 @@ def ask(user_message, history):
 
     choice = data["choices"][0]["message"]
 
-    # Fallback: модель иногда возвращает tool call как текст вместо структуры
     if not choice.get("tool_calls") and choice.get("content"):
         fn_name, fn_args = _parse_text_tool_call(choice["content"])
         if fn_name and fn_name in AVAILABLE_TOOLS:

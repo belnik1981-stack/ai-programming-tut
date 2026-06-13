@@ -2,7 +2,7 @@ content = r'''import requests
 import json
 import re
 from config import PROVIDERS, MAX_TOKENS, MAX_HISTORY_MESSAGES, SYSTEM_PROMPT
-from memory import save_history
+from memory import save_history, log_issue
 from tools import run_python_code, web_search
 
 TOOLS_SPEC = [
@@ -69,7 +69,7 @@ def _call_provider(provider, messages):
 
 
 def _call_api(messages):
-    last_error = None
+    errors = []
     for provider in PROVIDERS:
         if not provider["api_key"]:
             continue
@@ -78,14 +78,16 @@ def _call_api(messages):
             if response.status_code == 200:
                 return response.json()
             if response.status_code == 429:
-                last_error = f"{provider['name']}: лимит запросов (429)"
+                errors.append(f"{provider['name']}: 429")
+                log_issue("rate_limit", {"provider": provider['name']})
                 continue
-            last_error = f"{provider['name']}: ошибка {response.status_code}: {response.text[:200]}"
+            errors.append(f"{provider['name']}: {response.status_code} {response.text[:100]}")
+            log_issue("api_error", {"provider": provider['name'], "status": response.status_code, "body": response.text[:200]})
             continue
         except Exception as e:
-            last_error = f"{provider['name']}: исключение {e}"
+            errors.append(f"{provider['name']}: exc {e}")
             continue
-    raise RuntimeError(f"Все провайдеры недоступны. Последняя ошибка: {last_error}")
+    raise RuntimeError(f"Все провайдеры недоступны. Ошибки: {errors}")
 
 
 def ask(user_message, history):
@@ -101,7 +103,6 @@ def ask(user_message, history):
 
     choice = data["choices"][0]["message"]
 
-    # Fallback: модель иногда возвращает tool call как текст вместо структуры
     if not choice.get("tool_calls") and choice.get("content"):
         fn_name, fn_args = _parse_text_tool_call(choice["content"])
         if fn_name and fn_name in AVAILABLE_TOOLS:

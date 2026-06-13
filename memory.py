@@ -16,3 +16,20 @@ def save_history(history):
 def clear_history():
     if os.path.exists(HISTORY_FILE):
         os.remove(HISTORY_FILE)
+
+import datetime
+
+ISSUES_FILE = "data/issues.json"
+
+def log_issue(issue_type, details):
+    issues = []
+    if os.path.exists(ISSUES_FILE):
+        with open(ISSUES_FILE, "r", encoding="utf-8") as f:
+            issues = json.load(f)
+    issues.append({
+        "timestamp": datetime.datetime.now().isoformat(),
+        "type": issue_type,
+        "details": details
+    })
+    with open(ISSUES_FILE, "w", encoding="utf-8") as f:
+        json.dump(issues, f, ensure_ascii=False, indent=2)
