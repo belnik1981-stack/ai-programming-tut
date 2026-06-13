@@ -1,13 +1,17 @@
 import subprocess
 
 def run_python_code(code: str) -> str:
-    """Выполняет Python-код и возвращает результат (stdout/stderr)."""
+    """Выполняет Python-код в изолированном окружении (без доступа к env и домашней директории)."""
+    import tempfile
     try:
+        sandbox_dir = tempfile.mkdtemp(prefix="sandbox_")
         result = subprocess.run(
-            ["python3", "-c", code],
+            ["python3", "-I", "-c", code],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=10,
+            cwd=sandbox_dir,
+            env={"PATH": "/data/data/com.termux/files/usr/bin"}
         )
         output = result.stdout
         if result.stderr:
