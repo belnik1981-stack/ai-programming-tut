@@ -2,7 +2,7 @@ import requests
 import json
 from config import PROVIDERS, MAX_TOKENS, MAX_HISTORY_MESSAGES, SYSTEM_PROMPT
 from memory import save_history
-from tools import run_python_code
+from tools import run_python_code, web_search
 
 TOOLS_SPEC = [
     {
@@ -18,10 +18,24 @@ TOOLS_SPEC = [
                 "required": ["code"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Ищет актуальную информацию в интернете. Используй для вопросов о текущих событиях, версиях ПО, новостях или фактах, которые могут быть устаревшими в твоих знаниях.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Поисковый запрос"}
+                },
+                "required": ["query"]
+            }
+        }
     }
 ]
 
-AVAILABLE_TOOLS = {"run_python_code": run_python_code}
+AVAILABLE_TOOLS = {"run_python_code": run_python_code, "web_search": web_search}
 
 def _call_provider(provider, messages):
     headers = {
