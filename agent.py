@@ -69,7 +69,7 @@ def _call_provider(provider, messages):
 
 
 def _call_api(messages):
-    last_error = None
+    errors = []
     for provider in PROVIDERS:
         if not provider["api_key"]:
             continue
@@ -78,14 +78,14 @@ def _call_api(messages):
             if response.status_code == 200:
                 return response.json()
             if response.status_code == 429:
-                last_error = f"{provider['name']}: лимит запросов (429)"
+                errors.append(f"{provider['name']}: 429")
                 continue
-            last_error = f"{provider['name']}: ошибка {response.status_code}: {response.text[:200]}"
+            errors.append(f"{provider['name']}: {response.status_code} {response.text[:100]}")
             continue
         except Exception as e:
-            last_error = f"{provider['name']}: исключение {e}"
+            errors.append(f"{provider['name']}: exc {e}")
             continue
-    raise RuntimeError(f"Все провайдеры недоступны. Последняя ошибка: {last_error}")
+    raise RuntimeError(f"Все провайдеры недоступны. Ошибки: {errors}")
 
 
 def ask(user_message, history):

@@ -12,6 +12,12 @@ MAX_HISTORY_MESSAGES = 4
 
 PROVIDERS = [
     {
+        "name": "openrouter",
+        "api_key": os.getenv("OPENROUTER_API_KEY", ""),
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "meta-llama/llama-3.3-70b-instruct:free"
+    },
+    {
         "name": "groq",
         "api_key": os.getenv("GROQ_API_KEY", ""),
         "url": "https://api.groq.com/openai/v1/chat/completions",
