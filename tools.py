@@ -36,16 +36,13 @@ def _limit_resources():
 
 
 def _classify_error(stderr: str) -> str:
-    """Определяет тип ошибки по последней строке traceback."""
-    last_line = stderr.strip().splitlines()[-1] if stderr.strip() else ""
-    if "SyntaxError" in last_line or "IndentationError" in last_line:
+    """Определяет тип ошибки сканированием всего traceback (устойчиво к chained exceptions)."""
+    if "SyntaxError" in stderr or "IndentationError" in stderr:
         return "ERROR_SYNTAX"
-    if "NameError" in last_line:
+    if "NameError" in stderr:
         return "ERROR_NAME"
-    if "TypeError" in last_line:
+    if "TypeError" in stderr:
         return "ERROR_TYPE"
-    if "ZeroDivisionError" in last_line or "ValueError" in last_line or "IndexError" in last_line or "KeyError" in last_line:
-        return "ERROR_RUNTIME"
     return "ERROR_RUNTIME"
 
 
