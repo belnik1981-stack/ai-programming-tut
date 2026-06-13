@@ -56,14 +56,15 @@ def run_python_code(code: str) -> str:
         stderr = result.stderr.strip()
 
         if result.returncode != 0:
-            return f"[ERROR]\n{stderr or 'no stderr'}"
+            error_type = "ERROR_SYNTAX" if "SyntaxError" in stderr else "ERROR_RUNTIME"
+            return f"[{error_type}]\n{stderr or 'no stderr'}"
 
         if stdout:
             return f"[OK]\n{stdout}"
 
         return "[OK_NO_OUTPUT]"
     except subprocess.TimeoutExpired:
-        return "ОШИБКА: превышено время выполнения (10 сек)"
+        return "[ERROR_TIMEOUT]\nПревышено время выполнения (10 сек)"
     except Exception as e:
         return f"ОШИБКА: {e}"
     finally:
