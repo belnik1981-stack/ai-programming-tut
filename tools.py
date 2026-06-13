@@ -3,10 +3,10 @@ import ast
 import tempfile
 import shutil
 
-BLOCKED_MODULES = {"os", "subprocess", "socket", "shutil", "pathlib", "sys", "ctypes"}
+ALLOWED_MODULES = {"math", "random", "statistics", "itertools", "collections", "datetime", "json", "re", "string", "functools", "decimal", "fractions"}
 
 def _check_code_safety(code: str) -> str:
-    """Возвращает сообщение об ошибке если код использует запрещённые модули, иначе пустую строку."""
+    """Возвращает сообщение об ошибке если код использует запрещённые конструкции, иначе пустую строку."""
     try:
         tree = ast.parse(code)
     except SyntaxError as e:
@@ -15,13 +15,17 @@ def _check_code_safety(code: str) -> str:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.split(".")[0] in BLOCKED_MODULES:
-                    return f"Запрещённый модуль: {alias.name}"
+                top = alias.name.split(".")[0]
+                if top not in ALLOWED_MODULES:
+                    return f"Модуль не в списке разрешённых: {alias.name}"
         if isinstance(node, ast.ImportFrom):
-            if node.module and node.module.split(".")[0] in BLOCKED_MODULES:
-                return f"Запрещённый модуль: {node.module}"
-        if isinstance(node, ast.Name) and node.id == "__import__":
-            return "Запрещена прямая функция __import__"
+            top = (node.module or "").split(".")[0]
+            if top not in ALLOWED_MODULES:
+                return f"Модуль не в списке разрешённых: {node.module}"
+        if isinstance(node, ast.Name) and node.id in ("__import__", "open", "exec", "eval", "compile", "input", "getattr", "globals", "locals", "vars"):
+            return f"Запрещённая функция: {node.id}"
+        if isinstance(node, ast.Attribute) and node.attr in ("__import__", "__builtins__", "__globals__", "__subclasses__", "__bases__"):
+            return f"Запрещённый атрибут: {node.attr}"
     return ""
 
 
