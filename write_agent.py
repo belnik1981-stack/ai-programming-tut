@@ -1,4 +1,4 @@
-import requests
+content = r'''import requests
 import json
 import re
 from config import PROVIDERS, MAX_TOKENS, MAX_HISTORY_MESSAGES, SYSTEM_PROMPT
@@ -139,3 +139,9 @@ def ask(user_message, history):
     save_history(history)
 
     return reply
+'''
+
+with open("agent.py", "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("agent.py written")
